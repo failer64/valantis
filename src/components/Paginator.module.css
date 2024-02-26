@@ -1,0 +1,34 @@
+.paging {
+	display: flex;
+	justify-content: center;
+	margin-bottom: 30px;
+}
+
+.paging span {
+	padding: 5px;
+	font-size: 18px;
+	/*background-color: #05f;*/
+	cursor: pointer;
+	border-radius: 5px;
+	color: #111;
+}
+
+.paging span:not(:last-child) {
+	margin-right: 20px;
+}
+
+.paging .active {
+	background-color: #10d876;
+	color: #fff;
+	pointer-events: none;
+}
+
+@media (any-hover: hover) {
+	.paging span {
+		transition: color 0.3s ease 0s;
+	}
+
+	.paging span:hover {
+		color: #10d876;
+	}
+}

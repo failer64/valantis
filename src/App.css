@@ -1,0 +1,62 @@
+html,
+body {
+	height: 100%;
+}
+
+body {
+	margin: 0;
+	padding: 0;
+	min-width: 320px;
+}
+
+#root {
+	min-height: 100%;
+	display: flex;
+	overflow: hidden;
+	align-items: center;
+	justify-content: center;
+	background-color: #242424;
+
+	@media (min-width: 767px) {
+		padding: 15px;
+	}
+
+	@media (max-width: 767px) {
+		padding: 5px;
+	}
+}
+
+
+
+.card {
+	@media (min-width: 767px) {
+		width: 400px;
+	}
+}
+
+.content {
+	width: 100%;
+	max-width: 1200px;
+
+	.ant-card-body {
+		@media (max-width: 767px) {
+			padding: 2px;
+		}
+	}
+}
+
+.table {
+	margin-bottom: 10px;
+
+	@media (max-width: 767px) {
+		th {
+			padding: 10px 5px !important;
+			text-align: center;
+		}
+
+		td {
+			padding: 10px 5px !important;
+			text-align: center;
+		}
+	}
+}
