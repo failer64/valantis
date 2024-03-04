@@ -11,11 +11,11 @@
   },
   "dependencies": {
     "antd": "^5.14.2",
-    "axios": "^1.6.7",
     "md5": "^2.3.0",
     "moment": "^2.30.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-redux": "^9.1.0"
   },
   "devDependencies": {
     "@types/md5": "^2.3.5",

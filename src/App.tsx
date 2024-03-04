@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import './App.css';
-import { BodyType, appAPI } from './api';
 import { getUniqeItems } from './helpers';
-import { Card, Select, Table, TableColumnsType } from 'antd';
-//import Paginator from './components/Paginator';
+import { Table } from 'antd';
+import Paginator from './components/Paginator';
+import Filters from './components/Filters';
+import { getData } from './api';
+
+const { Column } = Table;
 
 export interface Items {
   brand: string | null;
@@ -12,113 +15,131 @@ export interface Items {
   product: string;
 }
 
-export interface Pagination {
-  current?: number;
-  pageSize?: number;
-  total?: number;
-}
-
-const columns: TableColumnsType<Items> = [
-  {
-    title: 'Id',
-    dataIndex: 'id',
-  },
-  {
-    title: 'Название',
-    dataIndex: 'product',
-  },
-  {
-    title: 'Цена',
-    dataIndex: 'price',
-  },
-  {
-    title: 'Бренд',
-    dataIndex: 'brand',
-  },
-];
-
-const filtersArr = [
-  { value: 'product', label: 'По названию' },
-  { value: 'price', label: 'По цене' },
-  { value: 'brand', label: 'По бренду' },
-];
+const pageSize = 50;
 
 function App() {
-  const [ids, setIds] = useState<string[]>([]);
   const [items, setItems] = useState<Items[]>([]);
+  const [products, setProducts] = useState<Items[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState([]);
-  //const [total, setTotal] = useState(0);
-  //const [current, setCurrent] = useState(1);
-  //const [size, setSize] = useState(50);
-  const [pagination, setPagination] = useState<Pagination>({
-    current: 1,
-    pageSize: 50,
-    //total: total,
-  });
+  const [filter, setFilter] = useState(0);
+  const [filterValue, setFilterValue] = useState<string | number>('');
+  const [fields, setFields] = useState<string[]>([]);
+  const [brands, setBrands] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
-    const body: BodyType = {
-      action: 'get_ids',
-      params: { offset: 0 },
-    };
+    // получаем список полей фильтра
+    getData({
+      action: 'get_fields',
+    }).then((data) => setFields(data));
 
-    appAPI.getProductIds(body).then((res) => {
-      //setTotal(res.length);
-      setIds(res);
+    // получаем список всех брендов
+    getData({
+      action: 'get_fields',
+      params: {
+        field: 'brand',
+      },
+    }).then((data: string[]) => {
+      const filteredData = data
+        .filter((d) => d) // фильтруем пустые значения
+        .reduce(
+          // оставляем уникальные
+          (res, cur) =>
+            res.find((find) => find === cur) ? res : [...res, cur],
+          [] as string[]
+        );
+      setBrands(filteredData);
     });
   }, []);
 
   useEffect(() => {
-    const body: BodyType = {
-      action: 'get_items',
-      params: { ids: [...ids] },
-    };
+    setItems([]);
+    setProducts([]);
     setLoading(true);
-    appAPI
-      .getItems(body)
-      .then((res) => setItems(getUniqeItems(res)))
-      .finally(() => setLoading(false));
-  }, [ids]);
 
-  const handleTableChange = (pagination: Pagination) => {
-    setPagination({
-      ...pagination,
-    });
+    if (filterValue) {
+      getData({
+        action: 'filter',
+        params: {
+          [fields[filter]]: filterValue,
+        },
+      }).then((ids) => {
+        getData({
+          action: 'get_items',
+          params: { ids },
+        })
+          .then((data) => setProducts(data))
+          .finally(() => setLoading(false));
+      });
+    } else {
+      getData({
+        action: 'get_ids',
+        params: {
+          offset: currentPage,
+          limit: pageSize,
+        },
+      }).then((ids) => {
+        getData({
+          action: 'get_items',
+          params: { ids },
+        })
+          .then((data) => setItems(data))
+          .finally(() => setLoading(false));
+      });
+    }
+  }, [currentPage, filter, filterValue, fields]);
+
+  const uniqeItems = products.length
+    ? getUniqeItems(products)
+    : getUniqeItems(items);
+
+  const onChangeFilter = (number: number, value: string | number) => {
+    setFilter(number);
+    setFilterValue(value);
+    setCurrentPage(0);
   };
 
-  //   const onPageChanged = (pageNumber: number) => {
-  //     setCurrent(pageNumber);
-  //   };
-
-  const handleSelectChange = (value: any) => {
-    setFilter(value);
+  const onChangeCurrentPage = (value: number) => {
+    setItems([]);
+    setCurrentPage((prev) => prev + value);
   };
 
   return (
-    <Card className="content" bordered={false}>
-      <Table
-        bordered={false}
-        rowKey={(row) => row.id}
-        columns={columns}
-        dataSource={items}
+    <>
+      <Filters
         loading={loading}
-        onChange={handleTableChange}
-        pagination={pagination}
-        className="table"
+        brands={brands}
+        onChangeFilter={onChangeFilter}
       />
-      <Select
-        //value={filter}
-        defaultValue={filter}
-        style={{ width: '100% ' }}
-        onChange={handleSelectChange}
-        options={filtersArr}
-        disabled={loading || items.length < 1}
-        placeholder={'Выберите фильтр'}
-        allowClear
-        showSearch={false}
-      />
-    </Card>
+      <Table
+        loading={loading}
+        dataSource={uniqeItems}
+        pagination={
+          products.length
+            ? {
+                pageSize: pageSize,
+                hideOnSinglePage: true,
+                defaultCurrent: 1,
+                showSizeChanger: false,
+              }
+            : false
+        }
+        className="content"
+      >
+        <Column title="Id" dataIndex="id" key="id" />
+        <Column title="Название" dataIndex="product" key="product" />
+        <Column title="Цена" dataIndex="price" key="price" />
+        <Column title="Бренд" dataIndex="brand" key="brand" />
+      </Table>
+      {!products.length && (
+        <Paginator
+          loading={loading}
+          currentPage={currentPage}
+          filtered={!!filterValue}
+          onChangeCurrentPage={onChangeCurrentPage}
+        />
+      )}
+    </>
   );
 }
 
